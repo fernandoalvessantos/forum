@@ -7,6 +7,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +18,9 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,6 +38,7 @@ import br.com.alura.forum.model.topic.domain.Topic;
 import br.com.alura.forum.repository.CategoryRepository;
 import br.com.alura.forum.repository.CourseRepository;
 import br.com.alura.forum.repository.TopicRepository;
+import br.com.alura.forum.validator.NewTopicCustomValidator;
 
 @RestController
 @RequestMapping(value="/api/topics")
@@ -80,7 +85,7 @@ public class TopicController {
 	}
 	
 	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<TopicOutputDto> createTopic(@RequestBody NewTopicInputDto newTopicInputDto,
+	public ResponseEntity<TopicOutputDto> createTopic(@Valid @RequestBody NewTopicInputDto newTopicInputDto,
 			@AuthenticationPrincipal User loggedUser,
 			UriComponentsBuilder uriBuilder){
 		Topic topic = newTopicInputDto.build(loggedUser, courseRepository);
@@ -91,6 +96,11 @@ public class TopicController {
 		
 		return ResponseEntity.created(path).body(new TopicOutputDto(topic));
 		
+	}
+	
+	@InitBinder("newTopicInputDto")
+	public void initBinder(WebDataBinder binder, @AuthenticationPrincipal User loggedUser) {
+		binder.addValidators(new NewTopicCustomValidator(this.topicRepository,loggedUser));
 	}
 	
 }
